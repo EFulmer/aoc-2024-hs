@@ -6,8 +6,8 @@ type SearchSpace = M.Map Coordinates Char
 -- transform list into a list of (x-y coordinate, value) type pairs
 nestedEnumerate :: [[a]] -> [((Int, Int), a)]
 nestedEnumerate xs = [
-    ((i, j), xs !! i !! j) | i <- [ 0 .. (length xs) -1        ],
-                           j <- [ 0 .. (length (xs !! i)) - 1 ]]
+    ((i, j), xs !! i !! j) | i <- [ 0 .. (length xs)        - 1 ],
+                           j <-   [ 0 .. (length (xs !! i)) - 1 ]]
 
 makeSearchSpace :: [[Char]] -> SearchSpace
 makeSearchSpace = M.fromList . nestedEnumerate
@@ -63,9 +63,6 @@ isValid :: [Maybe Char] -> Bool
 isValid [Just 'M', Just 'A', Just 'S'] = True
 isValid _                              = False
 
--- fmap (\x -> getWord x testExample)  (getAllPossibleWordCoordinates xPos1)
-
-
 -- CheckPos checks all possible adjacent sequences of length 3 and returns the number of which make "XMAS"
 checkPos :: Coordinates -> SearchSpace -> Int
 checkPos c s = length $ filter isValid $ fmap (\x -> getWord x s) (getAllPossibleWordCoordinates c)
@@ -74,9 +71,45 @@ part1Logic :: SearchSpace -> Int
 part1Logic s = let xPositions = getXPositions s in
     sum $ fmap (\x -> checkPos x s) xPositions
 
+-- Begin Part Two functions.
+
+getAPositions :: SearchSpace -> [Coordinates]
+getAPositions ss = M.keys $ M.filter (== 'A') ss
+
+-- could be a tuple instead of a list, since I only ever want five coordinates
+getXCoordinates :: Coordinates -> [Coordinates]
+getXCoordinates (x, y) = [(x - 1, y - 1), (x + 1, y + 1), (x, y), (x + 1, y - 1), (x - 1, y + 1)]
+
+getXWord :: Coordinates -> SearchSpace -> [Maybe Char]
+getXWord c s = let xc = getXCoordinates c in
+    getWord xc s
+
+isValidPartTwo :: [Maybe Char] -> Bool
+isValidPartTwo [Just 'M', Just 'S', Just 'A', Just 'M', Just 'S'] = True
+isValidPartTwo [Just 'M', Just 'S', Just 'A', Just 'S', Just 'M'] = True
+isValidPartTwo [Just 'S', Just 'M', Just 'A', Just 'M', Just 'S'] = True
+-- above three are all prob needed
+isValidPartTwo [Just 'S', Just 'M', Just 'A', Just 'S', Just 'M'] = True
+isValidPartTwo _                                                  = False
+
+checkOneXPartTwo :: Coordinates -> SearchSpace -> Bool
+checkOneXPartTwo c s = isValidPartTwo $ getXWord c s
+
+count :: (Eq a) => a -> [a] -> Int
+count a xs = go xs 0
+    where go []     acc = acc
+          go (x:xs) acc = if a == x then go xs (acc+1) else go xs acc
+
+partTwoLogic :: SearchSpace -> Int
+partTwoLogic s = let aPositions = getAPositions s in
+    count True $ fmap (\c -> checkOneXPartTwo c s) aPositions
+
 main :: IO ()
 main = do
-    searchSpace <- readAndProcessInput "day_04.txt"
+    searchSpace <- readAndProcessInput "input/day_04.txt"
     putStrLn "Part One:"
     let part1Answer = part1Logic searchSpace
     putStrLn $ "Answer: " ++ (show part1Answer)
+    putStrLn "Part Two:"
+    let partTwoAnswer = partTwoLogic searchSpace
+    putStrLn $ "Answer: " ++ (show partTwoAnswer)
